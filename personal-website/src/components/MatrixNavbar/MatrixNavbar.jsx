@@ -13,7 +13,7 @@ const MatrixNavbar = () => {
       }
 
       const chars = '0123456789アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-      const specialStrings = ['DEFCON', 'Belgrade', 'Serbia', 'Hacking', 'DC381', '+381'];
+      const specialStrings = ['DEFCON', 'Belgrade', 'Serbia', 'Hacking', 'DC381', '+381000000',];
       let intervalId;
       
       const createColumn = () => {
@@ -114,8 +114,8 @@ const MatrixNavbar = () => {
               </a>
             </li>
             <li className="nav-item">
-              <a href="/blog" className="nav-link" onClick={closeMobileMenu}>
-                Blog
+              <a href="/faq" className="nav-link" onClick={closeMobileMenu}>
+                Getting Started
               </a>
             </li>
             <li className="nav-item">
