@@ -7,9 +7,13 @@ const MatrixNavbar = () => {
   useEffect(() => {
     const createMatrixRain = () => {
       const container = document.getElementById('matrix-bg');
-      if (!container) return;
+      if (!container) {
+        console.log('Matrix container not found');
+        return;
+      }
 
       const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+      let intervalId;
       
       const createColumn = () => {
         const column = document.createElement('div');
@@ -17,9 +21,11 @@ const MatrixNavbar = () => {
         column.style.left = Math.random() * 100 + 'vw';
         column.style.animationDuration = (Math.random() * 3 + 2) + 's';
         column.style.opacity = Math.random() * 0.5 + 0.3;
+        column.style.fontSize = '14px';
+        column.style.lineHeight = '1.2';
         
         let text = '';
-        const length = Math.random() * 20 + 10;
+        const length = Math.random() * 15 + 8;
         for (let i = 0; i < length; i++) {
           text += chars[Math.floor(Math.random() * chars.length)] + '<br>';
         }
@@ -27,26 +33,36 @@ const MatrixNavbar = () => {
         
         container.appendChild(column);
         
+        // Remove column after animation
         setTimeout(() => {
-          if (column.parentNode) {
+          if (column && column.parentNode) {
             column.parentNode.removeChild(column);
           }
-        }, 5000);
+        }, 6000);
       };
       
-      // Create initial columns
-      for (let i = 0; i < 50; i++) {
-        setTimeout(createColumn, i * 100);
+      // Create initial burst of columns
+      for (let i = 0; i < 30; i++) {
+        setTimeout(createColumn, i * 200);
       }
       
       // Continue creating columns
-      const interval = setInterval(createColumn, 150);
+      intervalId = setInterval(createColumn, 300);
       
-      return () => clearInterval(interval);
+      return () => {
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+      };
     };
 
-    const cleanup = createMatrixRain();
-    return cleanup;
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      const cleanup = createMatrixRain();
+      return cleanup;
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const toggleMobileMenu = () => {
