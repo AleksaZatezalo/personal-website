@@ -7,9 +7,7 @@ const MissionStatement = () => {
 
   // Different mission statements that rotate
   const missionTexts = [
-    "Belgrade's Premier Cybersecurity Community",
-    "Empowering Digital Defenders Since 2025",
-    "Where Security Meets Innovation",
+    "Belgrade Born, Globally Connected",
   ];
 
   // Typewriter effect
