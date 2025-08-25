@@ -896,8 +896,8 @@ const Blog = () => {
             <div className="blog-header">
               <h1 className="blog-title">Getting Started With DC381</h1>
               <p className="blog-subtitle">
-                Security research, tutorials, and insights
-                {posts.length > 0 && ` • ${posts.length} post${posts.length > 1 ? 's' : ''}`}
+                Learn what it means to join a Defcon Group in 
+                {posts.length > 0 && ` ${posts.length} post${posts.length > 1 ? 's' : ''}`}
               </p>
             </div>
             
