@@ -1,137 +1,215 @@
-/* src/styles/colors.css or src/index.css */
+/* Matrix Navbar Styles - Add to ./src/index.css */
 
-:root {
-  /* Matrix Primary Colors */
-  --matrix-black: #000000;
-  --matrix-dark-bg: #0d1117;
-  --matrix-darker-bg: #030c0c;
-  
-  /* Matrix Green Variants */
-  --matrix-green-primary: #00ff41;
-  --matrix-green-bright: #39ff14;
-  --matrix-green-dim: #008f11;
-  --matrix-green-dark: #003300;
-  --matrix-green-glow: #00ff4180;
-  
-  /* Matrix Accent Colors */
-  --matrix-cyan: #00ffff;
-  --matrix-lime: #32cd32;
-  --matrix-emerald: #50c878;
-  
-  /* Matrix Text Colors */
-  --matrix-text-primary: #00ff41;
-  --matrix-text-secondary: #39ff14;
-  --matrix-text-dim: #66ff66;
-  --matrix-text-muted: #004d00;
-  
-  /* Matrix Interactive States */
-  --matrix-hover: #00ff4140;
-  --matrix-active: #00ff41;
-  --matrix-focus: #39ff14;
-  --matrix-border: #008f11;
-  
-  /* Matrix Gradients */
-  --matrix-gradient-primary: linear-gradient(135deg, #000000 0%, #0d1117 50%, #000000 100%);
-  --matrix-gradient-accent: linear-gradient(90deg, #00ff41 0%, #39ff14 100%);
-  --matrix-gradient-glow: radial-gradient(circle, #00ff4120 0%, transparent 70%);
-  
-  /* Matrix Shadows */
-  --matrix-shadow-glow: 0 0 10px #00ff4150;
-  --matrix-shadow-strong: 0 0 20px #00ff4180;
-  --matrix-shadow-text: 0 0 5px #00ff41;
-  
-  /* Matrix Animation Colors */
-  --matrix-pulse-start: #00ff4100;
-  --matrix-pulse-end: #00ff4150;
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+/* Matrix Rain Background */
+.matrix-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-/* Matrix Theme Body Styles */
-body.matrix-theme {
-  background: var(--matrix-dark-bg);
-  background-image: 
-    radial-gradient(circle at 25% 25%, #00ff4105 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, #00ff4105 0%, transparent 50%);
-  color: var(--matrix-text-primary);
-  font-family: 'Courier New', 'Monaco', monospace;
+.matrix-column {
+  position: absolute;
+  top: -100%;
+  font-family: 'Courier Prime', monospace;
+  font-size: 14px;
+  color: #00ff41;
+  animation: matrix-fall linear infinite;
+  opacity: 0.7;
+  pointer-events: none;
 }
 
-/* Matrix Button Styles */
-.matrix-btn {
-  background: transparent;
-  border: 1px solid var(--matrix-border);
-  color: var(--matrix-text-primary);
-  padding: 10px 20px;
+@keyframes matrix-fall {
+  to {
+    transform: translateY(calc(100vh + 100px));
+  }
+}
+
+/* Navigation Bar */
+.navbar {
+  position: relative;
+  background: rgba(0, 0, 0, 0.95);
+  border-bottom: 2px solid #00ff41;
+  padding: 1rem 2rem;
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  font-family: 'Courier Prime', monospace;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00ff41;
+  text-shadow: 0 0 10px #00ff41;
+  animation: glow 2s ease-in-out infinite alternate;
+  cursor: pointer;
+  user-select: none;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41;
+  }
+  to {
+    text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41;
+  }
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-link {
+  color: #00ff41;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 400;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(45deg, transparent 49%, #00ff41 50%, transparent 51%);
+  background-size: 20px 20px;
+  background-position: -20px -20px;
+  display: block;
+}
+
+.nav-link:hover {
+  color: #000;
+  border-color: #00ff41;
+  background-position: 0 0;
+  text-shadow: none;
+  animation: glitch 0.5s ease-in-out;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.4), transparent);
+  transition: left 0.5s;
+}
+
+.nav-link:hover::before {
+  left: 100%;
+}
+
+@keyframes glitch {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+}
+
+/* Mobile Menu */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: 1px solid #00ff41;
+  color: #00ff41;
+  font-size: 1.5rem;
+  padding: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-family: 'Courier Prime', monospace;
 }
 
-.matrix-btn:hover {
-  background: var(--matrix-hover);
-  box-shadow: var(--matrix-shadow-glow);
-  color: var(--matrix-text-secondary);
+.mobile-menu-btn:hover {
+  background: #00ff41;
+  color: #000;
 }
 
-.matrix-btn:active {
-  background: var(--matrix-green-dim);
-  transform: scale(0.98);
+.mobile-menu-btn:focus {
+  outline: 2px solid #00ff41;
+  outline-offset: 2px;
 }
 
-/* Matrix Input Styles */
-.matrix-input {
-  background: var(--matrix-darker-bg);
-  border: 1px solid var(--matrix-border);
-  color: var(--matrix-text-primary);
-  padding: 12px;
-  border-radius: 0;
-}
-
-.matrix-input:focus {
-  outline: none;
-  border-color: var(--matrix-focus);
-  box-shadow: var(--matrix-shadow-glow);
-}
-
-/* Matrix Card/Container Styles */
-.matrix-card {
-  background: var(--matrix-darker-bg);
-  border: 1px solid var(--matrix-border);
-  box-shadow: var(--matrix-shadow-glow);
-  backdrop-filter: blur(10px);
-}
-
-/* Matrix Text Effects */
-.matrix-glow-text {
-  color: var(--matrix-text-primary);
-  text-shadow: var(--matrix-shadow-text);
-}
-
-.matrix-pulse-text {
-  animation: matrixPulse 2s infinite;
-}
-
-@keyframes matrixPulse {
-  0%, 100% {
-    color: var(--matrix-text-primary);
-    text-shadow: var(--matrix-shadow-text);
+/* Responsive Design */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 1rem;
   }
-  50% {
-    color: var(--matrix-text-secondary);
-    text-shadow: 0 0 15px #39ff14;
+
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    flex-direction: column;
+    padding: 1rem;
+    border-top: 1px solid #00ff41;
+    gap: 0;
+  }
+
+  .nav-links.active {
+    display: flex;
+  }
+
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  .nav-item {
+    width: 100%;
+  }
+
+  .nav-link {
+    display: block;
+    text-align: center;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+    margin: 0;
+  }
+
+  .nav-link:last-child {
+    border-bottom: none;
+  }
+
+  .logo {
+    font-size: 1.2rem;
   }
 }
 
-/* Matrix Loading Animation */
-.matrix-loading {
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    var(--matrix-green-glow) 50%, 
-    transparent 100%);
-  animation: matrixScan 2s infinite;
-}
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0.75rem;
+  }
 
-@keyframes matrixScan {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  .logo {
+    font-size: 1rem;
+  }
+
+  .mobile-menu-btn {
+    font-size: 1.2rem;
+    padding: 0.25rem 0.5rem;
+  }
 }
