@@ -13,7 +13,7 @@ const MatrixNavbar = () => {
       }
 
       const chars = '0123456789アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-      const specialStrings = ['DEFCON', 'Belgrade', 'Serbia', 'Hacking', 'DC381', 'Penetration Testing', 'Hacker Culture', 'Belgrade Born', 'Whitehats only', 'Stay ethical'];
+      const specialStrings = ['DEFCON', 'Belgrade', 'Serbia', 'Hacking', 'DC381', 'Penetration Testing', 'Hacker Culture', 'Belgrade Born', 'Whitehats only', 'Stay ethical', '1337'];
       let intervalId;
       
       const createColumn = () => {
