@@ -1,13 +1,137 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* src/styles/colors.css or src/index.css */
+
+:root {
+  /* Matrix Primary Colors */
+  --matrix-black: #000000;
+  --matrix-dark-bg: #0d1117;
+  --matrix-darker-bg: #030c0c;
+  
+  /* Matrix Green Variants */
+  --matrix-green-primary: #00ff41;
+  --matrix-green-bright: #39ff14;
+  --matrix-green-dim: #008f11;
+  --matrix-green-dark: #003300;
+  --matrix-green-glow: #00ff4180;
+  
+  /* Matrix Accent Colors */
+  --matrix-cyan: #00ffff;
+  --matrix-lime: #32cd32;
+  --matrix-emerald: #50c878;
+  
+  /* Matrix Text Colors */
+  --matrix-text-primary: #00ff41;
+  --matrix-text-secondary: #39ff14;
+  --matrix-text-dim: #66ff66;
+  --matrix-text-muted: #004d00;
+  
+  /* Matrix Interactive States */
+  --matrix-hover: #00ff4140;
+  --matrix-active: #00ff41;
+  --matrix-focus: #39ff14;
+  --matrix-border: #008f11;
+  
+  /* Matrix Gradients */
+  --matrix-gradient-primary: linear-gradient(135deg, #000000 0%, #0d1117 50%, #000000 100%);
+  --matrix-gradient-accent: linear-gradient(90deg, #00ff41 0%, #39ff14 100%);
+  --matrix-gradient-glow: radial-gradient(circle, #00ff4120 0%, transparent 70%);
+  
+  /* Matrix Shadows */
+  --matrix-shadow-glow: 0 0 10px #00ff4150;
+  --matrix-shadow-strong: 0 0 20px #00ff4180;
+  --matrix-shadow-text: 0 0 5px #00ff41;
+  
+  /* Matrix Animation Colors */
+  --matrix-pulse-start: #00ff4100;
+  --matrix-pulse-end: #00ff4150;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Matrix Theme Body Styles */
+body.matrix-theme {
+  background: var(--matrix-dark-bg);
+  background-image: 
+    radial-gradient(circle at 25% 25%, #00ff4105 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, #00ff4105 0%, transparent 50%);
+  color: var(--matrix-text-primary);
+  font-family: 'Courier New', 'Monaco', monospace;
+}
+
+/* Matrix Button Styles */
+.matrix-btn {
+  background: transparent;
+  border: 1px solid var(--matrix-border);
+  color: var(--matrix-text-primary);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.matrix-btn:hover {
+  background: var(--matrix-hover);
+  box-shadow: var(--matrix-shadow-glow);
+  color: var(--matrix-text-secondary);
+}
+
+.matrix-btn:active {
+  background: var(--matrix-green-dim);
+  transform: scale(0.98);
+}
+
+/* Matrix Input Styles */
+.matrix-input {
+  background: var(--matrix-darker-bg);
+  border: 1px solid var(--matrix-border);
+  color: var(--matrix-text-primary);
+  padding: 12px;
+  border-radius: 0;
+}
+
+.matrix-input:focus {
+  outline: none;
+  border-color: var(--matrix-focus);
+  box-shadow: var(--matrix-shadow-glow);
+}
+
+/* Matrix Card/Container Styles */
+.matrix-card {
+  background: var(--matrix-darker-bg);
+  border: 1px solid var(--matrix-border);
+  box-shadow: var(--matrix-shadow-glow);
+  backdrop-filter: blur(10px);
+}
+
+/* Matrix Text Effects */
+.matrix-glow-text {
+  color: var(--matrix-text-primary);
+  text-shadow: var(--matrix-shadow-text);
+}
+
+.matrix-pulse-text {
+  animation: matrixPulse 2s infinite;
+}
+
+@keyframes matrixPulse {
+  0%, 100% {
+    color: var(--matrix-text-primary);
+    text-shadow: var(--matrix-shadow-text);
+  }
+  50% {
+    color: var(--matrix-text-secondary);
+    text-shadow: 0 0 15px #39ff14;
+  }
+}
+
+/* Matrix Loading Animation */
+.matrix-loading {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--matrix-green-glow) 50%, 
+    transparent 100%);
+  animation: matrixScan 2s infinite;
+}
+
+@keyframes matrixScan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
