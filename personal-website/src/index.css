@@ -2,30 +2,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
 
-/* Global App Styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background: #000;
-  color: #00ff41;
-  font-family: 'Courier Prime', monospace;
-  overflow-x: hidden;
-}
-
-#root {
-  background: #000;
-  min-height: 100vh;
-}
-
-.App {
-  background: #000;
-  min-height: 100vh;
-}
-
 /* Matrix Rain Background */
 .matrix-bg {
   position: fixed;
