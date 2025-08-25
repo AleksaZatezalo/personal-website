@@ -13,7 +13,7 @@ const MatrixNavbar = () => {
       }
 
       const chars = '0123456789アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-      const specialStrings = ['defcon381', 'belgrade'];
+      const specialStrings = ['Defcon381', 'Belgrade', 'Serbia', 'Hacking'];
       let intervalId;
       
       const createColumn = () => {
@@ -28,7 +28,7 @@ const MatrixNavbar = () => {
         let text = '';
         
         // 10% chance for entire column to be a special string only
-        const useSpecialString = Math.random() < 0.1;
+        const useSpecialString = Math.random() < 0.55;
         
         if (useSpecialString) {
           const specialString = specialStrings[Math.floor(Math.random() * specialStrings.length)];
@@ -104,7 +104,7 @@ const MatrixNavbar = () => {
       <nav className="navbar">
         <div className="nav-container">
           <div className="logo" onClick={handleLogoClick}>
-            DEFCON_BG
+            DC381
           </div>
           
           <ul className={`nav-links ${isMobileMenuOpen ? 'active' : ''}`}>
