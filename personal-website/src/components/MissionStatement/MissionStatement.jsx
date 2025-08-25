@@ -77,11 +77,11 @@ const MissionStatement = () => {
                 </div>
                 <div className="mission-item">
                   <span className="mission-label">[FOCUS]</span>
-                  <span className="mission-value">Ethical Hacking & Defense</span>
+                  <span className="mission-value">Security Reaserch</span>
                 </div>
                 <div className="mission-item">
                   <span className="mission-label">[COMMUNITY]</span>
-                  <span className="mission-value">Open Source Security</span>
+                  <span className="mission-value">DEF CON</span>
                 </div>
               </div>
 

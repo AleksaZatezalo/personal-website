@@ -13,7 +13,7 @@ const MatrixNavbar = () => {
       }
 
       const chars = '0123456789アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-      const specialStrings = ['DEFCON', 'Belgrade', 'Serbia', 'Hacking', 'DC381', '+381000000',];
+      const specialStrings = ['DEFCON', 'Belgrade', 'Serbia', 'Hacking', 'DC381', 'Penetration Testing', 'Hacker Culture', 'Belgrade Born'];
       let intervalId;
       
       const createColumn = () => {
@@ -28,7 +28,7 @@ const MatrixNavbar = () => {
         let text = '';
         
         // 10% chance for entire column to be a special string only
-        const useSpecialString = Math.random() < 0.95;
+        const useSpecialString = Math.random() < 1;
         
         if (useSpecialString) {
           const specialString = specialStrings[Math.floor(Math.random() * specialStrings.length)];
