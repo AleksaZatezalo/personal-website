@@ -12,7 +12,8 @@ const MatrixNavbar = () => {
         return;
       }
 
-      const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+      const chars = '0123456789アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+      const specialStrings = ['defcon381', 'belgrade'];
       let intervalId;
       
       const createColumn = () => {
@@ -25,9 +26,22 @@ const MatrixNavbar = () => {
         column.style.lineHeight = '1.2';
         
         let text = '';
-        const length = Math.random() * 15 + 8;
-        for (let i = 0; i < length; i++) {
-          text += chars[Math.floor(Math.random() * chars.length)] + '<br>';
+        
+        // 10% chance for entire column to be a special string only
+        const useSpecialString = Math.random() < 0.1;
+        
+        if (useSpecialString) {
+          const specialString = specialStrings[Math.floor(Math.random() * specialStrings.length)];
+          // Create column with only the special string characters
+          for (let i = 0; i < specialString.length; i++) {
+            text += specialString[i] + '<br>';
+          }
+        } else {
+          // Regular random character column
+          const length = Math.random() * 15 + 8;
+          for (let i = 0; i < length; i++) {
+            text += chars[Math.floor(Math.random() * chars.length)] + '<br>';
+          }
         }
         column.innerHTML = text;
         
@@ -125,6 +139,7 @@ const MatrixNavbar = () => {
           </button>
         </div>
       </nav>
+
     </>
   );
 };
