@@ -96,7 +96,7 @@ const userSchema = new mongoose.Schema({
   tag: {
     type: String,
     enum: [
-      '', 'Crypto', 'OSCP', 'Networks', 'Web Apps', 'Forensics',
+      '', 'Cryptography', 'Cryptocoins', 'OSCP', 'Networks', 'Web Apps', 'Forensics',
       'Malware Analysis', 'Social Engineering', 'Physical Security',
       'Mobile Security', 'Cloud Security', 'DevSecOps', 'Incident Response',
       'Threat Intelligence', 'Red Team', 'Blue Team', 'Purple Team'
