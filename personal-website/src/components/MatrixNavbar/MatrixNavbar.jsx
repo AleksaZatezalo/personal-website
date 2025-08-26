@@ -28,7 +28,7 @@ const MatrixNavbar = () => {
         let text = '';
         
         // 10% chance for entire column to be a special string only
-        const useSpecialString = Math.random() < 0.15;
+        const useSpecialString = Math.random() < 0.2;
         
         if (useSpecialString) {
           const specialString = specialStrings[Math.floor(Math.random() * specialStrings.length)];
