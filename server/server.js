@@ -373,6 +373,636 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Forum API Routes - Add these to your server.js file
+
+// Forum Category Schema
+const categorySchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 100
+  },
+  description: {
+    type: String,
+    required: true,
+    maxlength: 500
+  },
+  icon: {
+    type: String,
+    default: '💬'
+  },
+  order: {
+    type: Number,
+    default: 0
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Forum Topic Schema
+const topicSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 200
+  },
+  content: {
+    type: String,
+    required: true,
+    maxlength: 10000
+  },
+  author: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    required: true
+  },
+  isPinned: {
+    type: Boolean,
+    default: false
+  },
+  isLocked: {
+    type: Boolean,
+    default: false
+  },
+  views: {
+    type: Number,
+    default: 0
+  },
+  lastActivity: {
+    type: Date,
+    default: Date.now
+  },
+  lastPost: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post',
+    default: null
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Forum Post Schema
+const postSchema = new mongoose.Schema({
+  content: {
+    type: String,
+    required: true,
+    maxlength: 10000
+  },
+  author: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  topic: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Topic',
+    required: true
+  },
+  isEdited: {
+    type: Boolean,
+    default: false
+  },
+  editedAt: {
+    type: Date,
+    default: null
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Create models
+const Category = mongoose.model('Category', categorySchema);
+const Topic = mongoose.model('Topic', topicSchema);
+const Post = mongoose.model('Post', postSchema);
+
+// Middleware to update topic activity
+topicSchema.pre('save', function(next) {
+  this.lastActivity = new Date();
+  next();
+});
+
+postSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    // Update topic's last activity and last post
+    await Topic.findByIdAndUpdate(this.topic, {
+      lastActivity: new Date(),
+      lastPost: this._id
+    });
+  }
+  next();
+});
+
+// FORUM API ROUTES
+
+// Get all categories with topic and post counts
+app.get('/api/forum/categories', async (req, res) => {
+  try {
+    const categories = await Category.find({ isActive: true }).sort({ order: 1 });
+    
+    const categoriesWithStats = await Promise.all(
+      categories.map(async (category) => {
+        const topicCount = await Topic.countDocuments({ category: category._id });
+        const postCount = await Post.countDocuments({
+          topic: { $in: await Topic.find({ category: category._id }).distinct('_id') }
+        });
+        
+        // Get latest activity
+        const latestTopic = await Topic.findOne({ category: category._id })
+          .sort({ lastActivity: -1 })
+          .populate('author', 'username')
+          .populate('lastPost');
+        
+        let lastActivity = null;
+        let lastUser = null;
+        
+        if (latestTopic) {
+          lastActivity = latestTopic.lastActivity;
+          if (latestTopic.lastPost) {
+            const lastPost = await Post.findById(latestTopic.lastPost).populate('author', 'username');
+            lastUser = lastPost ? lastPost.author.username : latestTopic.author.username;
+          } else {
+            lastUser = latestTopic.author.username;
+          }
+        }
+
+        return {
+          id: category._id,
+          name: category.name,
+          description: category.description,
+          icon: category.icon,
+          topicCount,
+          postCount,
+          lastActivity,
+          lastUser
+        };
+      })
+    );
+
+    res.json({ categories: categoriesWithStats });
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ message: 'Failed to fetch categories' });
+  }
+});
+
+// Get topics in a category
+app.get('/api/forum/categories/:categoryId/topics', async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const topics = await Topic.find({ category: categoryId })
+      .populate('author', 'username tag')
+      .populate('lastPost')
+      .sort({ isPinned: -1, lastActivity: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const topicsWithStats = await Promise.all(
+      topics.map(async (topic) => {
+        const replyCount = await Post.countDocuments({ topic: topic._id });
+        
+        let lastUser = topic.author.username;
+        let lastReply = topic.createdAt;
+        
+        if (topic.lastPost) {
+          const lastPost = await Post.findById(topic.lastPost).populate('author', 'username');
+          if (lastPost) {
+            lastUser = lastPost.author.username;
+            lastReply = lastPost.createdAt;
+          }
+        }
+
+        return {
+          id: topic._id,
+          title: topic.title,
+          author: topic.author.username,
+          authorTag: topic.author.tag,
+          replies: replyCount,
+          views: topic.views,
+          lastReply,
+          lastUser,
+          isPinned: topic.isPinned,
+          isLocked: topic.isLocked,
+          createdAt: topic.createdAt
+        };
+      })
+    );
+
+    const totalTopics = await Topic.countDocuments({ category: categoryId });
+    const totalPages = Math.ceil(totalTopics / limit);
+
+    res.json({
+      topics: topicsWithStats,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalTopics,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching topics:', error);
+    res.status(500).json({ message: 'Failed to fetch topics' });
+  }
+});
+
+// Create new topic
+app.post('/api/forum/categories/:categoryId/topics', authenticateToken, async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { title, content } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({ message: 'Title and content are required' });
+    }
+
+    if (title.length > 200) {
+      return res.status(400).json({ message: 'Title must be 200 characters or less' });
+    }
+
+    if (content.length > 10000) {
+      return res.status(400).json({ message: 'Content must be 10000 characters or less' });
+    }
+
+    // Verify category exists
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    const topic = new Topic({
+      title,
+      content,
+      author: req.user._id,
+      category: categoryId
+    });
+
+    await topic.save();
+
+    // Create initial post
+    const post = new Post({
+      content,
+      author: req.user._id,
+      topic: topic._id
+    });
+
+    await post.save();
+
+    // Update topic with first post
+    topic.lastPost = post._id;
+    await topic.save();
+
+    const populatedTopic = await Topic.findById(topic._id)
+      .populate('author', 'username tag');
+
+    res.status(201).json({
+      message: 'Topic created successfully',
+      topic: {
+        id: populatedTopic._id,
+        title: populatedTopic.title,
+        author: populatedTopic.author.username,
+        authorTag: populatedTopic.author.tag,
+        createdAt: populatedTopic.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Error creating topic:', error);
+    res.status(500).json({ message: 'Failed to create topic' });
+  }
+});
+
+// Get posts in a topic
+app.get('/api/forum/topics/:topicId/posts', async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // Increment view count
+    await Topic.findByIdAndUpdate(topicId, { $inc: { views: 1 } });
+
+    const topic = await Topic.findById(topicId)
+      .populate('author', 'username tag')
+      .populate('category', 'name');
+
+    if (!topic) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+
+    const posts = await Post.find({ topic: topicId })
+      .populate('author', 'username tag createdAt')
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPosts = await Post.countDocuments({ topic: topicId });
+    const totalPages = Math.ceil(totalPosts / limit);
+
+    res.json({
+      topic: {
+        id: topic._id,
+        title: topic.title,
+        author: topic.author.username,
+        authorTag: topic.author.tag,
+        category: topic.category.name,
+        views: topic.views,
+        isPinned: topic.isPinned,
+        isLocked: topic.isLocked,
+        createdAt: topic.createdAt
+      },
+      posts: posts.map(post => ({
+        id: post._id,
+        content: post.content,
+        author: post.author.username,
+        authorTag: post.author.tag,
+        isEdited: post.isEdited,
+        editedAt: post.editedAt,
+        createdAt: post.createdAt
+      })),
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalPosts,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    res.status(500).json({ message: 'Failed to fetch posts' });
+  }
+});
+
+// Create new post (reply)
+app.post('/api/forum/topics/:topicId/posts', authenticateToken, async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ message: 'Content is required' });
+    }
+
+    if (content.length > 10000) {
+      return res.status(400).json({ message: 'Content must be 10000 characters or less' });
+    }
+
+    const topic = await Topic.findById(topicId);
+    if (!topic) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+
+    if (topic.isLocked) {
+      return res.status(403).json({ message: 'Topic is locked' });
+    }
+
+    const post = new Post({
+      content: content.trim(),
+      author: req.user._id,
+      topic: topicId
+    });
+
+    await post.save();
+
+    const populatedPost = await Post.findById(post._id)
+      .populate('author', 'username tag');
+
+    res.status(201).json({
+      message: 'Post created successfully',
+      post: {
+        id: populatedPost._id,
+        content: populatedPost.content,
+        author: populatedPost.author.username,
+        authorTag: populatedPost.author.tag,
+        createdAt: populatedPost.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Error creating post:', error);
+    res.status(500).json({ message: 'Failed to create post' });
+  }
+});
+
+// Update post (edit)
+app.put('/api/forum/posts/:postId', authenticateToken, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ message: 'Content is required' });
+    }
+
+    if (content.length > 10000) {
+      return res.status(400).json({ message: 'Content must be 10000 characters or less' });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Check if user owns the post
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'You can only edit your own posts' });
+    }
+
+    post.content = content.trim();
+    post.isEdited = true;
+    post.editedAt = new Date();
+    await post.save();
+
+    res.json({
+      message: 'Post updated successfully',
+      post: {
+        id: post._id,
+        content: post.content,
+        isEdited: post.isEdited,
+        editedAt: post.editedAt
+      }
+    });
+  } catch (error) {
+    console.error('Error updating post:', error);
+    res.status(500).json({ message: 'Failed to update post' });
+  }
+});
+
+// Delete post
+app.delete('/api/forum/posts/:postId', authenticateToken, async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Check if user owns the post
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'You can only delete your own posts' });
+    }
+
+    await Post.findByIdAndDelete(postId);
+
+    // If this was the last post, update topic's lastPost
+    const remainingPosts = await Post.find({ topic: post.topic }).sort({ createdAt: -1 });
+    const topic = await Topic.findById(post.topic);
+    
+    if (remainingPosts.length > 0) {
+      topic.lastPost = remainingPosts[0]._id;
+      topic.lastActivity = remainingPosts[0].createdAt;
+    } else {
+      topic.lastPost = null;
+      topic.lastActivity = topic.createdAt;
+    }
+    
+    await topic.save();
+
+    res.json({ message: 'Post deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    res.status(500).json({ message: 'Failed to delete post' });
+  }
+});
+
+// Search topics and posts
+app.get('/api/forum/search', async (req, res) => {
+  try {
+    const { q, category, page = 1, limit = 20 } = req.query;
+    
+    if (!q || q.trim().length < 3) {
+      return res.status(400).json({ message: 'Search query must be at least 3 characters' });
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const searchRegex = new RegExp(q.trim(), 'i');
+    
+    let topicFilter = {
+      $or: [
+        { title: searchRegex },
+        { content: searchRegex }
+      ]
+    };
+    
+    if (category) {
+      topicFilter.category = category;
+    }
+
+    const topics = await Topic.find(topicFilter)
+      .populate('author', 'username tag')
+      .populate('category', 'name')
+      .sort({ lastActivity: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const totalResults = await Topic.countDocuments(topicFilter);
+    const totalPages = Math.ceil(totalResults / parseInt(limit));
+
+    res.json({
+      results: topics.map(topic => ({
+        id: topic._id,
+        title: topic.title,
+        author: topic.author.username,
+        category: topic.category.name,
+        lastActivity: topic.lastActivity,
+        views: topic.views
+      })),
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalResults,
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1
+      },
+      searchQuery: q.trim()
+    });
+  } catch (error) {
+    console.error('Error searching forum:', error);
+    res.status(500).json({ message: 'Search failed' });
+  }
+});
+
+// Initialize default categories (run once)
+app.post('/api/forum/init', async (req, res) => {
+  try {
+    const existingCategories = await Category.countDocuments();
+    if (existingCategories > 0) {
+      return res.json({ message: 'Categories already initialized' });
+    }
+
+    const defaultCategories = [
+      {
+        name: 'General Discussion',
+        description: 'General cybersecurity topics and community discussions',
+        icon: '💬',
+        order: 1
+      },
+      {
+        name: 'Vulnerability Research',
+        description: 'Share your security research and vulnerability discoveries',
+        icon: '🔍',
+        order: 2
+      },
+      {
+        name: 'CTF & Challenges',
+        description: 'Capture The Flag discussions, writeups, and practice',
+        icon: '🚩',
+        order: 3
+      },
+      {
+        name: 'Tools & Tutorials',
+        description: 'Share security tools, scripts, and learning resources',
+        icon: '🛠️',
+        order: 4
+      },
+      {
+        name: 'Job Board',
+        description: 'Security job postings and career discussions',
+        icon: '💼',
+        order: 5
+      },
+      {
+        name: 'Meetup Planning',
+        description: 'Organize events, suggest topics, and coordinate meetups',
+        icon: '📅',
+        order: 6
+      }
+    ];
+
+    await Category.insertMany(defaultCategories);
+    
+    res.status(201).json({ 
+      message: 'Forum categories initialized successfully',
+      categories: defaultCategories.length 
+    });
+  } catch (error) {
+    console.error('Error initializing forum:', error);
+    res.status(500).json({ message: 'Failed to initialize forum' });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Unhandled error:', error);

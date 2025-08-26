@@ -12,163 +12,13 @@ const Forum = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-
-  // Forum data structure - moved before early returns
-  const [forumData, setForumData] = useState({
-    categories: [
-      {
-        id: 1,
-        name: 'General',
-        description: 'General cybersecurity topics and community discussions',
-        icon: '💬',
-        topicCount: 15,
-        postCount: 127,
-        lastActivity: '2024-01-15 14:30',
-        lastUser: 'SecurityMike'
-      },
-      {
-        id: 2,
-        name: 'Research',
-        description: 'Share your security research and vulnerability discoveries',
-        icon: '🔍',
-        topicCount: 8,
-        postCount: 43,
-        lastActivity: '2024-01-14 09:15',
-        lastUser: 'ResearcherAnna'
-      },
-      {
-        id: 3,
-        name: 'CTF Challenges',
-        description: 'Capture The Flag discussions, writeups, and practice',
-        icon: '🚩',
-        topicCount: 12,
-        postCount: 89,
-        lastActivity: '2024-01-15 11:22',
-        lastUser: 'CTFMaster'
-      },
-      {
-        id: 4,
-        name: 'Tools & Tutorials',
-        description: 'Share security tools, scripts, and learning resources',
-        icon: '🛠️',
-        topicCount: 20,
-        postCount: 156,
-        lastActivity: '2024-01-15 16:45',
-        lastUser: 'ToolBuilder'
-      },
-      {
-        id: 5,
-        name: 'Job Board',
-        description: 'Security job postings and career discussions',
-        icon: '💼',
-        topicCount: 6,
-        postCount: 24,
-        lastActivity: '2024-01-13 13:10',
-        lastUser: 'HRRecruiter'
-      },
-      {
-        id: 6,
-        name: 'Meetup',
-        description: 'Organize events, suggest topics, and coordinate meetups',
-        icon: '📅',
-        topicCount: 4,
-        postCount: 18,
-        lastActivity: '2024-01-15 10:30',
-        lastUser: 'Organizer'
-      }
-    ],
-    topics: {
-      1: [
-        {
-          id: 101,
-          title: 'Welcome to DefCon Belgrade Forum!',
-          author: 'Admin',
-          replies: 8,
-          views: 234,
-          lastReply: '2024-01-15 14:30',
-          lastUser: 'SecurityMike',
-          pinned: true,
-          content: 'Welcome to our community forum! Please introduce yourself and let us know what interests you in cybersecurity.'
-        },
-        {
-          id: 102,
-          title: 'Best practices for secure coding?',
-          author: 'DevSecOps',
-          replies: 12,
-          views: 89,
-          lastReply: '2024-01-15 12:15',
-          lastUser: 'CodeReviewer'
-        },
-        {
-          id: 103,
-          title: 'Thoughts on the latest security trends?',
-          author: 'TrendWatcher',
-          replies: 5,
-          views: 67,
-          lastReply: '2024-01-14 18:22',
-          lastUser: 'AnalystPro'
-        }
-      ],
-      2: [
-        {
-          id: 201,
-          title: 'CVE-2024-12345 Analysis and PoC',
-          author: 'ResearcherAnna',
-          replies: 6,
-          views: 156,
-          lastReply: '2024-01-14 09:15',
-          lastUser: 'VulnHunter'
-        },
-        {
-          id: 202,
-          title: 'Responsible disclosure process',
-          author: 'EthicalHacker',
-          replies: 9,
-          views: 123,
-          lastReply: '2024-01-13 16:30',
-          lastUser: 'ComplianceOfficer'
-        }
-      ],
-      3: [
-        {
-          id: 301,
-          title: 'HackTheBox - Retired Machine Writeup',
-          author: 'CTFMaster',
-          replies: 15,
-          views: 298,
-          lastReply: '2024-01-15 11:22',
-          lastUser: 'PwnLearner'
-        },
-        {
-          id: 302,
-          title: 'Local CTF competition - Team formation',
-          author: 'TeamCaptain',
-          replies: 7,
-          views: 89,
-          lastReply: '2024-01-14 20:45',
-          lastUser: 'NewbieCTF'
-        }
-      ]
-    },
-    posts: {
-      101: [
-        {
-          id: 1001,
-          author: 'Admin',
-          content: 'Welcome to our community forum! Please introduce yourself and let us know what interests you in cybersecurity.',
-          timestamp: '2024-01-10 10:00',
-          avatar: '👑'
-        },
-        {
-          id: 1002,
-          author: 'SecurityMike',
-          content: 'Thanks for setting this up! I\'m a pentester with 5 years experience. Looking forward to sharing knowledge with everyone.',
-          timestamp: '2024-01-15 14:30',
-          avatar: '🔒'
-        }
-      ]
-    }
-  });
+  
+  // API data state
+  const [categories, setCategories] = useState([]);
+  const [topics, setTopics] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -192,6 +42,156 @@ const Forum = () => {
 
     checkAuth();
   }, []);
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      fetchCategories();
+    }
+  }, [authLoading, isAuthenticated]);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  const fetchCategories = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/forum/categories');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setCategories(data.categories);
+      } else {
+        setError('Failed to load categories');
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setError('Network error loading categories');
+    }
+    setLoading(false);
+  };
+
+  const fetchTopics = async (categoryId) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/forum/categories/${categoryId}/topics`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setTopics(data.topics);
+      } else {
+        setError('Failed to load topics');
+      }
+    } catch (error) {
+      console.error('Error fetching topics:', error);
+      setError('Network error loading topics');
+    }
+    setLoading(false);
+  };
+
+  const fetchPosts = async (topicId) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/forum/topics/${topicId}/posts`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setSelectedThread({
+          id: data.topic.id,
+          title: data.topic.title,
+          author: data.topic.author,
+          views: data.topic.views
+        });
+        setPosts(data.posts);
+      } else {
+        setError('Failed to load posts');
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setError('Network error loading posts');
+    }
+    setLoading(false);
+  };
+
+  const handleCreateTopic = async () => {
+    if (!newTopicTitle.trim() || !newTopicContent.trim()) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/forum/categories/${selectedCategory.id}/topics`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          title: newTopicTitle.trim(),
+          content: newTopicContent.trim()
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setNewTopicTitle('');
+        setNewTopicContent('');
+        setShowNewTopicForm(false);
+        // Refresh topics
+        fetchTopics(selectedCategory.id);
+      } else {
+        setError(data.message || 'Failed to create topic');
+      }
+    } catch (error) {
+      console.error('Error creating topic:', error);
+      setError('Network error creating topic');
+    }
+    setLoading(false);
+  };
+
+  const handleReply = async () => {
+    if (!newReplyContent.trim()) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/forum/topics/${selectedThread.id}/posts`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          content: newReplyContent.trim()
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setNewReplyContent('');
+        // Refresh posts
+        fetchPosts(selectedThread.id);
+      } else {
+        setError(data.message || 'Failed to post reply');
+      }
+    } catch (error) {
+      console.error('Error posting reply:', error);
+      setError('Network error posting reply');
+    }
+    setLoading(false);
+  };
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return '';
+    const now = new Date();
+    const postTime = new Date(timestamp);
+    const diffMs = now - postTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -223,88 +223,26 @@ const Forum = () => {
     );
   }
 
-  const getCurrentTopics = () => {
-    if (!selectedCategory) return [];
-    return forumData.topics[selectedCategory.id] || [];
-  };
-
-  const getCurrentPosts = () => {
-    if (!selectedThread) return [];
-    return forumData.posts[selectedThread.id] || [];
-  };
-
-  const handleCreateTopic = () => {
-    if (!newTopicTitle.trim() || !newTopicContent.trim()) return;
-
-    const newTopic = {
-      id: Date.now(),
-      title: newTopicTitle,
-      author: currentUser.username,
-      replies: 0,
-      views: 1,
-      lastReply: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      lastUser: currentUser.username,
-      content: newTopicContent
-    };
-
-    const newPost = {
-      id: Date.now(),
-      author: currentUser.username,
-      content: newTopicContent,
-      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      avatar: '👤'
-    };
-
-    setForumData(prev => ({
-      ...prev,
-      topics: {
-        ...prev.topics,
-        [selectedCategory.id]: [...(prev.topics[selectedCategory.id] || []), newTopic]
-      },
-      posts: {
-        ...prev.posts,
-        [newTopic.id]: [newPost]
-      }
-    }));
-
-    setNewTopicTitle('');
-    setNewTopicContent('');
-    setShowNewTopicForm(false);
-  };
-
-  const handleReply = () => {
-    if (!newReplyContent.trim()) return;
-
-    const newPost = {
-      id: Date.now(),
-      author: currentUser.username,
-      content: newReplyContent,
-      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      avatar: '👤'
-    };
-
-    setForumData(prev => ({
-      ...prev,
-      posts: {
-        ...prev.posts,
-        [selectedThread.id]: [...(prev.posts[selectedThread.id] || []), newPost]
-      }
-    }));
-
-    setNewReplyContent('');
-  };
-
-  const formatTimestamp = (timestamp) => {
-    const now = new Date();
-    const postTime = new Date(timestamp);
-    const diffMs = now - postTime;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
+  const renderError = () => {
+    if (!error) return null;
+    return (
+      <div className="error-banner" style={{ 
+        background: 'rgba(255, 68, 68, 0.2)', 
+        border: '1px solid #ff4444', 
+        color: '#ff4444', 
+        padding: '1rem', 
+        marginBottom: '1rem', 
+        borderRadius: '4px' 
+      }}>
+        {error}
+        <button 
+          onClick={() => setError('')} 
+          style={{ float: 'right', background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer' }}
+        >
+          ×
+        </button>
+      </div>
+    );
   };
 
   const renderCategories = () => (
@@ -314,50 +252,55 @@ const Forum = () => {
         <p className="forum-subtitle">Welcome {currentUser.username}!</p>
       </div>
 
-      <div className="categories-list">
-        {forumData.categories.map(category => (
-          <div
-            key={category.id}
-            className="category-card"
-            onClick={() => {
-              setSelectedCategory(category);
-              setCurrentView('topics');
-            }}
-          >
-            <div className="category-icon">{category.icon}</div>
-            <div className="category-info">
-              <h3 className="category-name">{category.name}</h3>
-              <p className="category-description">{category.description}</p>
-            </div>
-            <div className="category-stats">
-              <div className="stat">
-                <span className="stat-number">{category.topicCount}</span>
-                <span className="stat-label">Topics</span>
+      {renderError()}
+
+      {loading ? (
+        <div className="loading">Loading categories...</div>
+      ) : (
+        <div className="categories-list">
+          {categories.map(category => (
+            <div
+              key={category.id}
+              className="category-card"
+              onClick={() => {
+                setSelectedCategory(category);
+                setCurrentView('topics');
+                fetchTopics(category.id);
+              }}
+            >
+              <div className="category-icon">{category.icon}</div>
+              <div className="category-info">
+                <h3 className="category-name">{category.name}</h3>
+                <p className="category-description">{category.description}</p>
               </div>
-              <div className="stat">
-                <span className="stat-number">{category.postCount}</span>
-                <span className="stat-label">Posts</span>
+              <div className="category-stats">
+                <div className="stat">
+                  <span className="stat-number">{category.topicCount}</span>
+                  <span className="stat-label">Topics</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-number">{category.postCount}</span>
+                  <span className="stat-label">Posts</span>
+                </div>
+              </div>
+              <div className="category-last-activity">
+                {category.lastActivity && (
+                  <>
+                    <div className="last-activity-time">{formatTimestamp(category.lastActivity)}</div>
+                    <div className="last-activity-user">by {category.lastUser}</div>
+                  </>
+                )}
               </div>
             </div>
-            <div className="category-last-activity">
-              <div className="last-activity-time">{formatTimestamp(category.lastActivity)}</div>
-              <div className="last-activity-user">by {category.lastUser}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
   const renderTopics = () => (
     <div className="forum-topics">
       <div className="topics-header">
-        <button
-          className="back-button"
-          onClick={() => setCurrentView('categories')}
-        >
-          ← Back to Categories
-        </button>
         <h2 className="topics-title">{selectedCategory.name}</h2>
         <button
           className="new-topic-button"
@@ -366,6 +309,14 @@ const Forum = () => {
           + New Topic
         </button>
       </div>
+      <button
+          className="back-button"
+          onClick={() => setCurrentView('categories')}
+        >
+          ← Back
+        </button>
+
+      {renderError()}
 
       {showNewTopicForm && (
         <div className="new-topic-form">
@@ -384,80 +335,105 @@ const Forum = () => {
             rows="4"
           />
           <div className="form-buttons">
-            <button onClick={handleCreateTopic} className="create-button">Create Topic</button>
+            <button onClick={handleCreateTopic} className="create-button" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Topic'}
+            </button>
             <button onClick={() => setShowNewTopicForm(false)} className="cancel-button">Cancel</button>
           </div>
         </div>
       )}
 
-      <div className="topics-list">
-        {getCurrentTopics().map(topic => (
-          <div
-            key={topic.id}
-            className={`topic-row ${topic.pinned ? 'pinned' : ''}`}
-            onClick={() => {
-              setSelectedThread(topic);
-              setCurrentView('thread');
-            }}
-          >
-            <div className="topic-status">
-              {topic.pinned && <span className="pin-icon">📌</span>}
+      {loading ? (
+        <div className="loading">Loading topics...</div>
+      ) : (
+        <div className="topics-list">
+          {topics.map(topic => (
+            <div
+              key={topic.id}
+              className={`topic-row ${topic.isPinned ? 'pinned' : ''}`}
+              onClick={() => {
+                setCurrentView('thread');
+                fetchPosts(topic.id);
+              }}
+            >
+              <div className="topic-status">
+                {topic.isPinned && <span className="pin-icon">📌</span>}
+                {topic.isLocked && <span className="lock-icon">🔒</span>}
+              </div>
+              <div className="topic-info">
+                <h4 className="topic-title">{topic.title}</h4>
+                <span className="topic-author">by {topic.author}</span>
+              </div>
+              <div className="topic-stats">
+                <span className="replies">{topic.replies} replies</span>
+                <span className="views">{topic.views} views</span>
+              </div>
+              <div className="topic-last-activity">
+                <div className="last-reply-time">{formatTimestamp(topic.lastReply)}</div>
+                <div className="last-reply-user">by {topic.lastUser}</div>
+              </div>
             </div>
-            <div className="topic-info">
-              <h4 className="topic-title">{topic.title}</h4>
-              <span className="topic-author">by {topic.author}</span>
+          ))}
+          {topics.length === 0 && !loading && (
+            <div className="no-topics">
+              <p>No topics in this category yet. Be the first to start a discussion!</p>
             </div>
-            <div className="topic-stats">
-              <span className="replies">{topic.replies} replies</span>
-              <span className="views">{topic.views} views</span>
-            </div>
-            <div className="topic-last-activity">
-              <div className="last-reply-time">{formatTimestamp(topic.lastReply)}</div>
-              <div className="last-reply-user">by {topic.lastUser}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
   const renderThread = () => (
     <div className="forum-thread">
       <div className="thread-header">
+        <h2 className="thread-title">{selectedThread.title}</h2>
+      </div>
+
         <button
           className="back-button"
           onClick={() => setCurrentView('topics')}
         >
-          ← Back to {selectedCategory.name}
+          ← Back
         </button>
-        <h2 className="thread-title">{selectedThread.title}</h2>
-      </div>
 
-      <div className="posts-list">
-        {getCurrentPosts().map(post => (
-          <div key={post.id} className="post">
-            <div className="post-author">
-              <div className="author-avatar">{post.avatar}</div>
-              <div className="author-name">{post.author}</div>
-              <div className="post-timestamp">{formatTimestamp(post.timestamp)}</div>
-            </div>
-            <div className="post-content">
-              {post.content}
-            </div>
+      {renderError()}
+
+      {loading ? (
+        <div className="loading">Loading posts...</div>
+      ) : (
+        <>
+          <div className="posts-list">
+            {posts.map(post => (
+              <div key={post.id} className="post">
+                <div className="post-author">
+                  <div className="author-avatar">👤</div>
+                  <div className="author-name">{post.author}</div>
+                  {post.authorTag && <div className="author-tag">{post.authorTag}</div>}
+                  <div className="post-timestamp">{formatTimestamp(post.createdAt)}</div>
+                  {post.isEdited && <div className="edited-indicator">(edited)</div>}
+                </div>
+                <div className="post-content">
+                  {post.content}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="reply-form">
-        <textarea
-          placeholder="Write your reply..."
-          value={newReplyContent}
-          onChange={(e) => setNewReplyContent(e.target.value)}
-          className="reply-input"
-          rows="3"
-        />
-        <button onClick={handleReply} className="reply-button">Post Reply</button>
-      </div>
+          <div className="reply-form">
+            <textarea
+              placeholder="Write your reply..."
+              value={newReplyContent}
+              onChange={(e) => setNewReplyContent(e.target.value)}
+              className="reply-input"
+              rows="3"
+            />
+            <button onClick={handleReply} className="reply-button" disabled={loading}>
+              {loading ? 'Posting...' : 'Post Reply'}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 
