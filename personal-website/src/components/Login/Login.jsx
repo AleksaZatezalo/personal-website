@@ -18,7 +18,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const availableTags = [
-    'Crypto', 'Networks', 'Web Apps', 'Forensics', 
+    'Crypto', 'OSCP', 'Networks', 'Web Apps', 'Forensics', 
     'Malware Analysis', 'Social Engineering', 'Physical Security',
     'Mobile Security', 'Cloud Security', 'DevSecOps', 'Incident Response',
     'Threat Intelligence', 'Red Team', 'Blue Team', 'Purple Team'
@@ -29,7 +29,7 @@ const Login = () => {
       setStep('auth-choice');
       setErrors({});
     } else {
-      setErrors({ accessCode: 'Invalid access code!' });
+      setErrors({ accessCode: 'Invalid access code. Have you read all the introductory articles?' });
     }
   };
 
@@ -76,7 +76,7 @@ const Login = () => {
     
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,15 +105,16 @@ const Login = () => {
     
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('username', registerData.username);
-      formData.append('password', registerData.password);
-      formData.append('resetPin', registerData.resetPin);
-      formData.append('tag', registerData.tag);
-      
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: registerData.username,
+          password: registerData.password,
+          tag: registerData.tag
+        }),
       });
       
       const data = await response.json();
@@ -136,6 +137,7 @@ const Login = () => {
     <div className="auth-form">
       <div className="form-header">
         <h2>Access Required</h2>
+        <p>Enter the access code from the "Getting Connected" article to continue</p>
       </div>
       
       <div className="form-group">
