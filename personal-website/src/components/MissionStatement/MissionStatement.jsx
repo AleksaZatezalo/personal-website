@@ -51,7 +51,7 @@ const MissionStatement = () => {
             <span className="terminal-dot yellow"></span>
             <span className="terminal-dot green"></span>
           </div>
-          <div className="terminal-title">DEFCON_BELGRADE.exe</div>
+          <div className="terminal-title">Terminal</div>
         </div>
 
         {/* Mission Content */}
