@@ -392,7 +392,7 @@ const categorySchema = new mongoose.Schema({
   },
   icon: {
     type: String,
-    default: '💬'
+    default: ''
   },
   order: {
     type: Number,
@@ -958,37 +958,37 @@ app.post('/api/forum/init', async (req, res) => {
       {
         name: 'General Discussion',
         description: 'General cybersecurity topics and community discussions',
-        icon: '💬',
+        icon: ' ',
         order: 1
       },
       {
         name: 'Vulnerability Research',
         description: 'Share your security research and vulnerability discoveries',
-        icon: '🔍',
+        icon: ' ',
         order: 2
       },
       {
         name: 'CTF & Challenges',
         description: 'Capture The Flag discussions, writeups, and practice',
-        icon: '🚩',
+        icon: ' ',
         order: 3
       },
       {
         name: 'Tools & Tutorials',
         description: 'Share security tools, scripts, and learning resources',
-        icon: '🛠️',
+        icon: ' ',
         order: 4
       },
       {
         name: 'Job Board',
         description: 'Security job postings and career discussions',
-        icon: '💼',
+        icon: ' ',
         order: 5
       },
       {
         name: 'Meetup Planning',
         description: 'Organize events, suggest topics, and coordinate meetups',
-        icon: '📅',
+        icon: ' ',
         order: 6
       }
     ];
