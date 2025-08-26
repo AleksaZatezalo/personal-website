@@ -375,8 +375,8 @@ app.post('/api/auth/reset-password', async (req, res) => {
     
     // Find user
     const user = await User.findOne({
-      username: { $regex: new RegExp('^' + username.trim() + ', '+ i) },
-      isActive: true
+        username: { $regex: new RegExp('^' + username.trim() + ', 'i') }, // <- Missing $ before 'i')
+        isActive: true
     });
     
     if (!user || user.resetPin !== resetPin) {
