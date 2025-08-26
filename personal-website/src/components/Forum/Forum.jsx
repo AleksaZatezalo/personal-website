@@ -118,6 +118,16 @@ const Forum = () => {
     setLoading(false);
   };
 
+  const handleTopicClick = async (topicId) => {
+    // Clear previous thread data first
+    setSelectedThread(null);
+    setPosts([]);
+    setCurrentView('thread');
+    
+    // Then fetch the new thread data
+    await fetchPosts(topicId);
+  };
+
   const handleCreateTopic = async () => {
     if (!newTopicTitle.trim() || !newTopicContent.trim()) return;
 
@@ -151,7 +161,7 @@ const Forum = () => {
   };
 
   const handleReply = async () => {
-    if (!newReplyContent.trim()) return;
+    if (!newReplyContent.trim() || !selectedThread) return;
 
     setLoading(true);
     try {
@@ -301,7 +311,7 @@ const Forum = () => {
   const renderTopics = () => (
     <div className="forum-topics">
       <div className="topics-header">
-        <h2 className="topics-title">{selectedCategory.name}</h2>
+        <h2 className="topics-title">{selectedCategory?.name}</h2>
         <button
           className="new-topic-button"
           onClick={() => setShowNewTopicForm(true)}
@@ -309,6 +319,7 @@ const Forum = () => {
           + New Topic
         </button>
       </div>
+
       <button
           className="back-button"
           onClick={() => setCurrentView('categories')}
@@ -351,10 +362,7 @@ const Forum = () => {
             <div
               key={topic.id}
               className={`topic-row ${topic.isPinned ? 'pinned' : ''}`}
-              onClick={() => {
-                setCurrentView('thread');
-                fetchPosts(topic.id);
-              }}
+              onClick={() => handleTopicClick(topic.id)}
             >
               <div className="topic-status">
                 {topic.isPinned && <span className="pin-icon">📌</span>}
@@ -384,58 +392,75 @@ const Forum = () => {
     </div>
   );
 
-  const renderThread = () => (
-    <div className="forum-thread">
-      <div className="thread-header">
-        <h2 className="thread-title">{selectedThread.title}</h2>
-      </div>
+  const renderThread = () => {
+    // Handle the case when selectedThread is null (still loading)
+    if (!selectedThread) {
+      return (
+        <div className="forum-thread">
+          <div className="thread-header">
+            
+            <h2 className="thread-title">Loading...</h2>
+          </div>
+          {loading && <div className="loading">Loading thread...</div>}
+          {renderError()}
+        </div>
+      );
+    }
+
+    return (
+      <div className="forum-thread">
+        <div className="thread-header">
+          
+          <h2 className="thread-title">{selectedThread.title}</h2>
+        </div>
 
         <button
-          className="back-button"
-          onClick={() => setCurrentView('topics')}
-        >
-          ← Back
-        </button>
+            className="back-button"
+            onClick={() => setCurrentView('topics')}
+          >
+            ← Back
+          </button>
+          
+        {renderError()}
 
-      {renderError()}
-
-      {loading ? (
-        <div className="loading">Loading posts...</div>
-      ) : (
-        <>
-          <div className="posts-list">
-            {posts.map(post => (
-              <div key={post.id} className="post">
-                <div className="post-author">
-                  <div className="author-avatar">👤</div>
-                  <div className="author-name">{post.author}</div>
-                  {post.authorTag && <div className="author-tag">{post.authorTag}</div>}
-                  <div className="post-timestamp">{formatTimestamp(post.createdAt)}</div>
-                  {post.isEdited && <div className="edited-indicator">(edited)</div>}
+        {loading ? (
+          <div className="loading">Loading posts...</div>
+        ) : (
+          <>
+            <div className="posts-list">
+              {posts.map(post => (
+                <div key={post.id} className="post">
+                  <div className="post-author">
+                    <div className="author-avatar">👤</div>
+                    <div className="author-name">{post.author}</div>
+                    {post.authorTag && <div className="author-tag">{post.authorTag}</div>}
+                    <div className="post-timestamp">{formatTimestamp(post.createdAt)}</div>
+                    {post.isEdited && <div className="edited-indicator">(edited)</div>}
+                  </div>
+                  <div className="post-content">
+                    {post.content}
+                  </div>
                 </div>
-                <div className="post-content">
-                  {post.content}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div className="reply-form">
-            <textarea
-              placeholder="Write your reply..."
-              value={newReplyContent}
-              onChange={(e) => setNewReplyContent(e.target.value)}
-              className="reply-input"
-              rows="3"
-            />
-            <button onClick={handleReply} className="reply-button" disabled={loading}>
-              {loading ? 'Posting...' : 'Post Reply'}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
+            <div className="reply-form">
+              <textarea
+                placeholder="Write your reply..."
+                value={newReplyContent}
+                onChange={(e) => setNewReplyContent(e.target.value)}
+                className="reply-input"
+                rows="3"
+              />
+              <button onClick={handleReply} className="reply-button" disabled={loading}>
+                {loading ? 'Posting...' : 'Post Reply'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div>
