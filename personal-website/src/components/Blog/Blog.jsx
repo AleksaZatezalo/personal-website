@@ -233,17 +233,7 @@ To access our internal community resources, you'll need to create a profile on o
 
 1. **Navigate to the Sign-In Page:** Visit our community portal's sign-in page
 2. **Create Your Account:** Click on the registration/sign-up option
-3. **Enter the Access Code:** Use code **1337** during registration
-   - This code proves you've read through all the introductory articles
-   - It serves as our verification that you're serious about joining the community
-4. **Complete Your Profile:** Fill out your basic information and interests
-
-### Why We Use an Access Code
-
-The code **1337** (leet speak for "elite") is a small barrier to entry that ensures new members have:
-- Read and understood our foundational materials
-- Demonstrated genuine interest in the community
-- Basic familiarity with hacker culture and terminology
+3. **Complete Your Profile:** Fill out your basic information and interests
 
 ## What You'll Find on Our Platform
 

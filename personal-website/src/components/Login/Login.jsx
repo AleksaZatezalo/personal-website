@@ -12,7 +12,6 @@ const Login = () => {
     username: '',
     password: '',
     confirmPassword: '',
-    resetPin: '',
     tag: ''
   });
   const [errors, setErrors] = useState({});
@@ -30,7 +29,7 @@ const Login = () => {
       setStep('auth-choice');
       setErrors({});
     } else {
-      setErrors({ accessCode: 'Invalid access code. Have you read all the introductory articles?' });
+      setErrors({ accessCode: 'Invalid access code!' });
     }
   };
 
@@ -66,12 +65,6 @@ const Login = () => {
     
     if (registerData.password !== registerData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
-    }
-    
-    if (!registerData.resetPin) {
-      newErrors.resetPin = 'Password reset PIN is required';
-    } else if (!/^\d{4,6}$/.test(registerData.resetPin)) {
-      newErrors.resetPin = 'PIN must be 4-6 digits';
     }
     
     setErrors(newErrors);
@@ -143,7 +136,6 @@ const Login = () => {
     <div className="auth-form">
       <div className="form-header">
         <h2>Access Required</h2>
-        <p>Enter the access code from the "Getting Connected" article to continue</p>
       </div>
       
       <div className="form-group">
@@ -266,18 +258,6 @@ const Login = () => {
           className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
         />
         {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
-      </div>
-      
-      <div className="form-group">
-        <input
-          type="text"
-          placeholder="Password Reset PIN (4-6 digits) *"
-          value={registerData.resetPin}
-          onChange={(e) => setRegisterData({ ...registerData, resetPin: e.target.value })}
-          className={`form-input ${errors.resetPin ? 'error' : ''}`}
-          maxLength="6"
-        />
-        {errors.resetPin && <span className="error-message">{errors.resetPin}</span>}
       </div>
       
       <div className="form-group">
