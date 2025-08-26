@@ -87,11 +87,6 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
-  resetPin: {
-    type: String,
-    required: true,
-    match: /^\d{4,6}$/
-  },
   profilePicture: {
     type: String,
     default: null
@@ -181,12 +176,12 @@ const authenticateToken = async (req, res, next) => {
 // Register endpoint
 app.post('/api/auth/register', upload.single('profilePicture'), async (req, res) => {
   try {
-    const { username, password, resetPin, tag } = req.body;
+    const { username, password, tag } = req.body;
     
     // Validate required fields
-    if (!username || !password || !resetPin) {
+    if (!username || !password) {
       return res.status(400).json({
-        message: 'Username, password, and reset PIN are required'
+        message: 'Username and password are required'
       });
     }
     
@@ -205,18 +200,10 @@ app.post('/api/auth/register', upload.single('profilePicture'), async (req, res)
       });
     }
     
-    // Validate reset PIN
-    if (!/^\d{4,6}$/.test(resetPin)) {
-      return res.status(400).json({
-        message: 'Reset PIN must be 4-6 digits'
-      });
-    }
-    
     // Create user object
     const userData = {
       username: username.trim(),
       password,
-      resetPin,
       tag: tag || ''
     };
     
@@ -286,7 +273,7 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
     
-    // Find user (case-insensitive username search)
+    // Find user (case-insensitive username search) - FIXED THE TYPO
     const user = await User.findOne({
       username: { $regex: new RegExp('^' + username.trim() + '$', 'i') },
       isActive: true
@@ -356,50 +343,6 @@ app.get('/api/auth/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// Password reset endpoint (using PIN)
-app.post('/api/auth/reset-password', async (req, res) => {
-  try {
-    const { username, resetPin, newPassword } = req.body;
-    
-    if (!username || !resetPin || !newPassword) {
-      return res.status(400).json({
-        message: 'Username, reset PIN, and new password are required'
-      });
-    }
-    
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        message: 'New password must be at least 6 characters long'
-      });
-    }
-    
-    // Find user
-    const user = await User.findOne({
-      username: { $regex: new RegExp('^' + username.trim() + ', '+ i) },
-      isActive: true
-    });
-    
-    if (!user || user.resetPin !== resetPin) {
-      return res.status(401).json({
-        message: 'Invalid username or reset PIN'
-      });
-    }
-    
-    // Update password
-    user.password = newPassword;
-    await user.save();
-    
-    res.json({ message: 'Password reset successfully' });
-    
-  } catch (error) {
-    console.error('Password reset error:', error);
-    res.status(500).json({
-      message: 'Password reset failed',
-      error: error.message
-    });
-  }
-});
-
 // Logout endpoint (for token blacklisting if needed)
 app.post('/api/auth/logout', authenticateToken, async (req, res) => {
   // In a production app, you might want to blacklist the token
@@ -411,7 +354,7 @@ app.post('/api/auth/logout', authenticateToken, async (req, res) => {
 app.get('/api/users', authenticateToken, async (req, res) => {
   try {
     const users = await User.find({ isActive: true })
-      .select('-password -resetPin')
+      .select('-password')
       .sort({ createdAt: -1 });
     
     res.json({ users });
