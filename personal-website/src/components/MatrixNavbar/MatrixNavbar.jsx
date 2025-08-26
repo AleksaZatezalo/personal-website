@@ -2,6 +2,39 @@ import React, { useState, useEffect } from 'react';
 
 const MatrixNavbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Check authentication status on component mount and when localStorage changes
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for storage changes (e.g., login in another tab)
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
+  }, []);
 
   // Matrix Rain Effect
   useEffect(() => {
@@ -27,7 +60,7 @@ const MatrixNavbar = () => {
         
         let text = '';
         
-        // 10% chance for entire column to be a special string only
+        // 20% chance for entire column to be a special string only
         const useSpecialString = Math.random() < 0.2;
         
         if (useSpecialString) {
@@ -95,6 +128,15 @@ const MatrixNavbar = () => {
     }, 10);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    closeMobileMenu();
+    window.location.href = '/';
+  };
+
   return (
     <>
       {/* Matrix Rain Background */}
@@ -123,11 +165,22 @@ const MatrixNavbar = () => {
                 Forum
               </a>
             </li>
-            <li className="nav-item">
-              <a href="/login" className="nav-link" onClick={closeMobileMenu}>
-                Login
-              </a>
-            </li>
+            {isAuthenticated ? (
+              <li className="nav-item">
+                <button 
+                  onClick={handleLogout}
+                  className="nav-link logout-button"
+                >
+                  Logout ({currentUser?.username})
+                </button>
+              </li>
+            ) : (
+              <li className="nav-item">
+                <a href="/login" className="nav-link" onClick={closeMobileMenu}>
+                  Login
+                </a>
+              </li>
+            )}
           </ul>
 
           <button 
