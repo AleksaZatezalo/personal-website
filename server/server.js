@@ -1032,3 +1032,504 @@ app.listen(PORT, () => {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`MongoDB URI: ${process.env.MONGODB_URI || 'mongodb://localhost:27017/dc381'}`);
 });
+
+const fs = require('fs').promises;
+const matter = require('gray-matter'); // npm install gray-matter
+
+// Blog post routes
+const BLOG_POSTS_DIR = path.join(__dirname, 'blog-posts');
+
+// Ensure blog posts directory exists
+const initializeBlogDirectory = async () => {
+  try {
+    await fs.access(BLOG_POSTS_DIR);
+  } catch {
+    await fs.mkdir(BLOG_POSTS_DIR, { recursive: true });
+    console.log('Created blog-posts directory');
+  }
+};
+
+// Initialize blog directory on server start
+initializeBlogDirectory();
+
+// Get all blog posts metadata
+app.get('/api/blog/posts', async (req, res) => {
+  try {
+    const files = await fs.readdir(BLOG_POSTS_DIR);
+    const markdownFiles = files.filter(file => file.endsWith('.md'));
+    
+    const posts = await Promise.all(
+      markdownFiles.map(async (filename) => {
+        const filePath = path.join(BLOG_POSTS_DIR, filename);
+        const fileContent = await fs.readFile(filePath, 'utf8');
+        const { data, content } = matter(fileContent);
+        
+        // Generate excerpt if not provided
+        let excerpt = data.excerpt;
+        if (!excerpt) {
+          const contentLines = content.split('\n').filter(line => 
+            !line.startsWith('#') && line.trim().length > 0
+          );
+          excerpt = contentLines[0] ? 
+            (contentLines[0].substring(0, 150) + (contentLines[0].length > 150 ? '...' : '')) : 
+            'No excerpt available';
+        }
+        
+        return {
+          id: filename.replace('.md', ''),
+          filename,
+          title: data.title || filename.replace('.md', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          date: data.date || new Date().toISOString().split('T')[0],
+          author: data.author || 'DefCon Belgrade',
+          excerpt,
+          tags: data.tags || ['blog'],
+          readTime: Math.ceil(content.length / 1000) // Rough reading time estimate
+        };
+      })
+    );
+    
+    // Sort by date (newest first)
+    posts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    res.json({ 
+      posts,
+      total: posts.length
+    });
+    
+  } catch (error) {
+    console.error('Error fetching blog posts:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch blog posts',
+      error: error.message 
+    });
+  }
+});
+
+// Get single blog post content
+app.get('/api/blog/posts/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const filename = `${postId}.md`;
+    const filePath = path.join(BLOG_POSTS_DIR, filename);
+    
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+    } catch {
+      return res.status(404).json({ 
+        message: 'Blog post not found' 
+      });
+    }
+    
+    const fileContent = await fs.readFile(filePath, 'utf8');
+    const { data, content } = matter(fileContent);
+    
+    const post = {
+      id: postId,
+      filename,
+      title: data.title || postId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      date: data.date || new Date().toISOString().split('T')[0],
+      author: data.author || 'DefCon Belgrade',
+      tags: data.tags || ['blog'],
+      content,
+      metadata: data
+    };
+    
+    res.json({ post });
+    
+  } catch (error) {
+    console.error('Error fetching blog post:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch blog post',
+      error: error.message 
+    });
+  }
+});
+
+// Admin endpoint to create/update blog posts (authenticated)
+app.post('/api/blog/posts', authenticateToken, async (req, res) => {
+  try {
+    const { 
+      filename, 
+      title, 
+      content, 
+      author = 'DefCon Belgrade',
+      tags = ['blog'],
+      excerpt
+    } = req.body;
+    
+    if (!filename || !title || !content) {
+      return res.status(400).json({
+        message: 'Filename, title, and content are required'
+      });
+    }
+    
+    // Ensure filename ends with .md
+    const safeFilename = filename.endsWith('.md') ? filename : `${filename}.md`;
+    const filePath = path.join(BLOG_POSTS_DIR, safeFilename);
+    
+    // Create frontmatter
+    const frontmatter = {
+      title,
+      date: new Date().toISOString().split('T')[0],
+      author,
+      tags,
+      ...(excerpt && { excerpt })
+    };
+    
+    // Combine frontmatter and content
+    const fileContent = matter.stringify(content, frontmatter);
+    
+    await fs.writeFile(filePath, fileContent, 'utf8');
+    
+    res.status(201).json({
+      message: 'Blog post saved successfully',
+      filename: safeFilename,
+      id: safeFilename.replace('.md', '')
+    });
+    
+  } catch (error) {
+    console.error('Error saving blog post:', error);
+    res.status(500).json({
+      message: 'Failed to save blog post',
+      error: error.message
+    });
+  }
+});
+
+// Admin endpoint to delete blog posts (authenticated)
+app.delete('/api/blog/posts/:postId', authenticateToken, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const filename = `${postId}.md`;
+    const filePath = path.join(BLOG_POSTS_DIR, filename);
+    
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+    } catch {
+      return res.status(404).json({ 
+        message: 'Blog post not found' 
+      });
+    }
+    
+    await fs.unlink(filePath);
+    
+    res.json({ 
+      message: 'Blog post deleted successfully',
+      id: postId
+    });
+    
+  } catch (error) {
+    console.error('Error deleting blog post:', error);
+    res.status(500).json({
+      message: 'Failed to delete blog post',
+      error: error.message
+    });
+  }
+});
+
+// ================================
+// CLIENT-SIDE BLOG COMPONENT
+// ================================
+
+import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
+import MatrixNavbar from '../MatrixNavbar';
+import 'highlight.js/styles/atom-one-dark.css';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+const Blog = () => {
+  const [posts, setPosts] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [postContent, setPostContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [postLoading, setPostLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Fetch all blog posts metadata
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(`${API_BASE_URL}/api/blog/posts`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setPosts(data.posts || []);
+        
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        setError('Failed to load blog posts. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  // Fetch individual post content
+  const loadPost = async (post) => {
+    try {
+      setPostLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${API_BASE_URL}/api/blog/posts/${post.id}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Blog post not found');
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setPostContent(data.post.content);
+      
+    } catch (error) {
+      console.error('Error fetching post content:', error);
+      setError('Failed to load blog post content. Please try again later.');
+      setPostContent(`# Error Loading Post\n\nSorry, we couldn't load "${post.title}" at this time.`);
+    } finally {
+      setPostLoading(false);
+    }
+  };
+
+  const selectPost = (post) => {
+    setSelectedPost(post);
+    loadPost(post);
+  };
+
+  const goBack = () => {
+    setSelectedPost(null);
+    setPostContent('');
+    setError(null);
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div>
+        <MatrixNavbar />
+        <div className="blog-container">
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Loading blog posts...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !selectedPost) {
+    return (
+      <div>
+        <MatrixNavbar />
+        <div className="blog-container">
+          <div className="error-state">
+            <h2>Oops! Something went wrong</h2>
+            <p>{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="retry-button"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <MatrixNavbar />
+      <div className="blog-container">
+        {!selectedPost ? (
+          // Blog post list
+          <div className="blog-list">
+            <div className="blog-header">
+              <h1 className="blog-title">Getting Started With DC381</h1>
+              <p className="blog-subtitle">
+                Learn what it means to join a Defcon Group
+                {posts.length > 0 && ` in ${posts.length} post${posts.length > 1 ? 's' : ''}`}
+              </p>
+            </div>
+            
+            {posts.length === 0 ? (
+              <div className="empty-state">
+                <h3>No blog posts available</h3>
+                <p>Check back soon for new content!</p>
+              </div>
+            ) : (
+              <div className="posts-grid">
+                {posts.map(post => (
+                  <article 
+                    key={post.id} 
+                    className="post-card" 
+                    onClick={() => selectPost(post)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && selectPost(post)}
+                  >
+                    <div className="post-header">
+                      <h2 className="post-title">{post.title}</h2>
+                      <div className="post-meta">
+                        <span className="post-date">{post.date}</span>
+                        <span className="post-author">by {post.author}</span>
+                        {post.readTime && (
+                          <span className="read-time">{post.readTime} min read</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <p className="post-excerpt">{post.excerpt}</p>
+                    
+                    <div className="post-tags">
+                      {post.tags.map(tag => (
+                        <span key={tag} className="tag">#{tag}</span>
+                      ))}
+                    </div>
+                    
+                    <div className="read-more">
+                      <span>Read more →</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          // Selected blog post
+          <div className="blog-post">
+            <button 
+              className="back-button" 
+              onClick={goBack}
+              aria-label="Go back to blog list"
+            >
+              ← Back
+            </button>
+            
+            <div className="post-header-full">
+              <h1 className="post-title-full">{selectedPost.title}</h1>
+              <div className="post-meta-full">
+                <span className="post-date">{selectedPost.date}</span>
+                <span className="post-author">by {selectedPost.author}</span>
+                {selectedPost.readTime && (
+                  <span className="read-time">{selectedPost.readTime} min read</span>
+                )}
+              </div>
+              <div className="post-tags">
+                {selectedPost.tags.map(tag => (
+                  <span key={tag} className="tag">#{tag}</span>
+                ))}
+              </div>
+            </div>
+            
+            <div className="post-content">
+              {postLoading ? (
+                <div className="loading">
+                  <div className="loading-spinner"></div>
+                  <p>Loading post...</p>
+                </div>
+              ) : (
+                <div className="markdown-content">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight, rehypeRaw]}
+                  >
+                    {postContent}
+                  </ReactMarkdown>
+                </div>
+              )}
+              
+              {error && (
+                <div className="error-message">
+                  <p>{error}</p>
+                  <button 
+                    onClick={() => loadPost(selectedPost)}
+                    className="retry-button"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Blog;
+
+// ================================
+// BLOG MANAGEMENT UTILITY
+// ================================
+
+// blog-migration.js - Run this once to migrate existing embedded posts
+
+const fs = require('fs').promises;
+const path = require('path');
+const matter = require('gray-matter');
+
+const EMBEDDED_POSTS = {
+  // Your existing embedded posts object here
+  'welcome-to-defcon-belgrade.md': `---
+title: Welcome to DefCon Belgrade
+date: 2024-01-15
+author: DefCon Belgrade
+tags: [introduction, community, cybersecurity]
+excerpt: Welcome to our cybersecurity community! We're excited to share knowledge, research, and insights with the security community.
+---
+
+# Welcome to DefCon Belgrade
+
+Welcome to our cybersecurity community! We're excited to share knowledge, research, and insights with the security community.
+
+## What We Cover
+
+- **Vulnerability Research**: Latest CVE discoveries
+- **Penetration Testing**: Real-world techniques and tools  
+- **Security News**: Industry updates and analysis
+
+## Join Our Community
+
+It does not matter if you are a computer hacker, a programer, a lawyer or business owner. Everyone with an interest in security is free to attend. We accept lurkers, form posters, event attendees, and speakers so long as you engage with the community.`,
+
+  // Add all other posts with proper frontmatter...
+};
+
+const migrateBlogPosts = async () => {
+  const blogDir = path.join(__dirname, 'blog-posts');
+  
+  try {
+    await fs.access(blogDir);
+  } catch {
+    await fs.mkdir(blogDir, { recursive: true });
+    console.log('Created blog-posts directory');
+  }
+  
+  for (const [filename, content] of Object.entries(EMBEDDED_POSTS)) {
+    const filePath = path.join(blogDir, filename);
+    await fs.writeFile(filePath, content, 'utf8');
+    console.log(`Migrated ${filename}`);
+  }
+  
+  console.log('Migration complete!');
+};
+
+// Uncomment to run migration
+// migrateBlogPosts().catch(console.error);

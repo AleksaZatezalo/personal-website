@@ -137,7 +137,7 @@ const Login = () => {
     <div className="auth-form">
       <div className="form-header">
         <h2>Access Required</h2>
-        <p>Enter the access code from the "Getting Connected" article to continue</p>
+        <p>Enter the access code</p>
       </div>
       
       <div className="form-group">
