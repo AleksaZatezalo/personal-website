@@ -375,6 +375,37 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.post('/api/auth/verify-access', (req, res) => {
+  try {
+    const { accessCode } = req.body;
+    
+    if (!accessCode) {
+      return res.status(400).json({
+        message: 'Access code is required'
+      });
+    }
+    
+    // Check if access code is valid
+    if (accessCode === '1389') {
+      res.json({
+        message: 'Access code verified',
+        valid: true
+      });
+    } else {
+      res.status(401).json({
+        message: 'Invalid access code. Better luck next time.',
+        valid: false
+      });
+    }
+  } catch (error) {
+    console.error('Access code verification error:', error);
+    res.status(500).json({
+      message: 'Verification failed',
+      error: error.message
+    });
+  }
+});
+
 // Forum API Routes - Add these to your server.js file
 
 // Forum Category Schema

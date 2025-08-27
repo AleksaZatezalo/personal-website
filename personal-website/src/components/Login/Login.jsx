@@ -24,13 +24,34 @@ const Login = () => {
     'Threat Intelligence', 'Red Team', 'Blue Team', 'Purple Team'
   ];
 
-  const validateAccessCode = () => {
-    if (accessCode === '1337') {
-      setStep('auth-choice');
-      setErrors({});
-    } else {
-      setErrors({ accessCode: 'Invalid access code. Have you read all the introductory articles?' });
+  const validateAccessCode = async () => {
+    if (!accessCode.trim()) {
+      setErrors({ accessCode: 'Access code is required' });
+      return;
     }
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/verify-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accessCode: accessCode.trim() }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.valid) {
+        setStep('auth-choice');
+        setErrors({});
+      } else {
+        setErrors({ accessCode: data.message || 'Invalid access code' });
+      }
+    } catch (error) {
+      setErrors({ accessCode: 'Network error. Please try again.' });
+    }
+    setLoading(false);
   };
 
   const validateLogin = () => {
@@ -147,12 +168,13 @@ const Login = () => {
           value={accessCode}
           onChange={(e) => setAccessCode(e.target.value)}
           className={`form-input ${errors.accessCode ? 'error' : ''}`}
+          onKeyPress={(e) => e.key === 'Enter' && validateAccessCode()}
         />
         {errors.accessCode && <span className="error-message">{errors.accessCode}</span>}
       </div>
       
-      <button onClick={validateAccessCode} className="auth-button">
-        Continue
+      <button onClick={validateAccessCode} className="auth-button" disabled={loading}>
+        {loading ? 'Verifying...' : 'Continue'}
       </button>
     </div>
   );
