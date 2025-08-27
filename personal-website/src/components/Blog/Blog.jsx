@@ -886,7 +886,7 @@ const Blog = () => {
             <div className="blog-header">
               <h1 className="blog-title">Getting Started With DC381</h1>
               <p className="blog-subtitle">
-                Read your first philes bellow.
+                Philes for n00bs.
               </p>
             </div>
             
