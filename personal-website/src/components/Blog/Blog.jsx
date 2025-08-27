@@ -884,10 +884,9 @@ const Blog = () => {
           // Blog post list
           <div className="blog-list">
             <div className="blog-header">
-              <h1 className="blog-title">Getting Started With DC381</h1>
+              <h1 className="blog-title">DC381 Blog</h1>
               <p className="blog-subtitle">
-                Learn what it means to join a Defcon Group in 
-                {posts.length > 0 && ` ${posts.length} post${posts.length > 1 ? 's' : ''}`}
+                Browse all our philes below.
               </p>
             </div>
             
