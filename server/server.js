@@ -386,7 +386,7 @@ app.post('/api/auth/verify-access', (req, res) => {
     }
     
     // Check if access code is valid
-    if (accessCode === '1389') {
+    if (accessCode === '1337') {
       res.json({
         message: 'Access code verified',
         valid: true
