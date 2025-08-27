@@ -21,7 +21,7 @@ const Login = () => {
     'Crypto', 'OSCP', 'Networks', 'Web Apps', 'Forensics', 
     'Malware Analysis', 'Social Engineering', 'Physical Security',
     'Mobile Security', 'Cloud Security', 'DevSecOps', 'Incident Response',
-    'Threat Intelligence', 'Red Team', 'Blue Team', 'Purple Team', 'CIA'
+    'Threat Intelligence', 'Red Team', 'Blue Team', 'Purple Team'
   ];
 
   const validateAccessCode = async () => {

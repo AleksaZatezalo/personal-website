@@ -393,7 +393,7 @@ app.post('/api/auth/verify-access', (req, res) => {
       });
     } else {
       res.status(401).json({
-        message: 'Invalid access code. Have you read phile on the getting started page?',
+        message: 'Invalid access code. Have you read all the philes?',
         valid: false
       });
     }
