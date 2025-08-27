@@ -157,7 +157,7 @@ const MatrixNavbar = () => {
             </li>
             <li className="nav-item">
               <a href="/faq" className="nav-link" onClick={closeMobileMenu}>
-                Philes
+                Getting Started
               </a>
             </li>
             <li className="nav-item">

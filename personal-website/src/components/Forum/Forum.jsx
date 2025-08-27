@@ -12,7 +12,8 @@ const Forum = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // { type: 'topic'|'post', id: string, title?: string }
+
   // API data state
   const [categories, setCategories] = useState([]);
   const [topics, setTopics] = useState([]);
@@ -189,6 +190,75 @@ const Forum = () => {
     setLoading(false);
   };
 
+  const handleDeleteTopic = async (topicId) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/forum/topics/${topicId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setShowDeleteConfirm(null);
+        // If we're currently viewing this topic, go back to topics view
+        if (selectedThread && selectedThread.id === topicId) {
+          setCurrentView('topics');
+          setSelectedThread(null);
+          setPosts([]);
+        }
+        // Refresh topics list
+        if (selectedCategory) {
+          fetchTopics(selectedCategory.id);
+        }
+      } else {
+        setError(data.message || 'Failed to delete topic');
+      }
+    } catch (error) {
+      console.error('Error deleting topic:', error);
+      setError('Network error deleting topic');
+    }
+    setLoading(false);
+  };
+
+  const handleDeletePost = async (postId) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/forum/posts/${postId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setShowDeleteConfirm(null);
+        
+        if (data.topicDeleted) {
+          // Entire topic was deleted (original post), go back to topics view
+          setCurrentView('topics');
+          setSelectedThread(null);
+          setPosts([]);
+          if (selectedCategory) {
+            fetchTopics(selectedCategory.id);
+          }
+        } else {
+          // Just refresh the current thread
+          if (selectedThread) {
+            fetchPosts(selectedThread.id);
+          }
+        }
+      } else {
+        setError(data.message || 'Failed to delete post');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      setError('Network error deleting post');
+    }
+    setLoading(false);
+  };
+
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
     const now = new Date();
@@ -255,6 +325,48 @@ const Forum = () => {
     );
   };
 
+  const renderDeleteConfirmation = () => {
+    if (!showDeleteConfirm) return null;
+
+    const isTopicDeletion = showDeleteConfirm.type === 'topic';
+    
+    return (
+      <div className="modal-overlay" onClick={() => setShowDeleteConfirm(null)}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <h3>Confirm Deletion</h3>
+          <p>
+            Are you sure you want to delete this {isTopicDeletion ? 'topic' : 'post'}?
+            {isTopicDeletion && ' This will delete the entire topic and all its posts.'}
+          </p>
+          {showDeleteConfirm.title && (
+            <p className="delete-item-title">"{showDeleteConfirm.title}"</p>
+          )}
+          <div className="modal-buttons">
+            <button 
+              className="delete-confirm-button"
+              onClick={() => {
+                if (isTopicDeletion) {
+                  handleDeleteTopic(showDeleteConfirm.id);
+                } else {
+                  handleDeletePost(showDeleteConfirm.id);
+                }
+              }}
+              disabled={loading}
+            >
+              {loading ? 'Deleting...' : 'Delete'}
+            </button>
+            <button 
+              className="cancel-button"
+              onClick={() => setShowDeleteConfirm(null)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderCategories = () => (
     <div className="forum-categories">
       <div className="forum-header">
@@ -305,6 +417,7 @@ const Forum = () => {
           ))}
         </div>
       )}
+      {renderDeleteConfirmation()}
     </div>
   );
 
@@ -321,11 +434,11 @@ const Forum = () => {
       </div>
 
       <button
-          className="back-button"
-          onClick={() => setCurrentView('categories')}
-        >
-          ← Back
-        </button>
+        className="back-button"
+        onClick={() => setCurrentView('categories')}
+      >
+        ← Back
+      </button>
 
       {renderError()}
 
@@ -359,16 +472,16 @@ const Forum = () => {
       ) : (
         <div className="topics-list">
           {topics.map(topic => (
-            <div
-              key={topic.id}
-              className={`topic-row ${topic.isPinned ? 'pinned' : ''}`}
-              onClick={() => handleTopicClick(topic.id)}
-            >
+            <div key={topic.id} className={`topic-row ${topic.isPinned ? 'pinned' : ''}`}>
               <div className="topic-status">
                 {topic.isPinned && <span className="pin-icon">📌</span>}
                 {topic.isLocked && <span className="lock-icon">🔒</span>}
               </div>
-              <div className="topic-info">
+              <div 
+                className="topic-info"
+                onClick={() => handleTopicClick(topic.id)}
+                style={{ cursor: 'pointer', flex: 1 }}
+              >
                 <h4 className="topic-title">{topic.title}</h4>
                 <span className="topic-author">by {topic.author}</span>
               </div>
@@ -380,6 +493,24 @@ const Forum = () => {
                 <div className="last-reply-time">{formatTimestamp(topic.lastReply)}</div>
                 <div className="last-reply-user">by {topic.lastUser}</div>
               </div>
+              {currentUser && topic.author === currentUser.username && (
+                <div className="topic-actions">
+                  <button
+                    className="delete-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteConfirm({
+                        type: 'topic',
+                        id: topic.id,
+                        title: topic.title
+                      });
+                    }}
+                    title="Delete topic"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              )}
             </div>
           ))}
           {topics.length === 0 && !loading && (
@@ -389,6 +520,7 @@ const Forum = () => {
           )}
         </div>
       )}
+      {renderDeleteConfirmation()}
     </div>
   );
 
@@ -398,7 +530,6 @@ const Forum = () => {
       return (
         <div className="forum-thread">
           <div className="thread-header">
-            
             <h2 className="thread-title">Loading...</h2>
           </div>
           {loading && <div className="loading">Loading thread...</div>}
@@ -410,16 +541,15 @@ const Forum = () => {
     return (
       <div className="forum-thread">
         <div className="thread-header">
-          
           <h2 className="thread-title">{selectedThread.title}</h2>
         </div>
 
         <button
-            className="back-button"
-            onClick={() => setCurrentView('topics')}
-          >
-            ← Back
-          </button>
+          className="back-button"
+          onClick={() => setCurrentView('topics')}
+        >
+          ← Back
+        </button>
           
         {renderError()}
 
@@ -428,7 +558,7 @@ const Forum = () => {
         ) : (
           <>
             <div className="posts-list">
-              {posts.map(post => (
+              {posts.map((post, index) => (
                 <div key={post.id} className="post">
                   <div className="post-author">
                     <div className="author-avatar">👤</div>
@@ -437,8 +567,27 @@ const Forum = () => {
                     <div className="post-timestamp">{formatTimestamp(post.createdAt)}</div>
                     {post.isEdited && <div className="edited-indicator">(edited)</div>}
                   </div>
-                  <div className="post-content">
-                    {post.content}
+                  <div className="post-content-wrapper">
+                    <div className="post-content">
+                      {post.content}
+                    </div>
+                    {currentUser && post.author === currentUser.username && (
+                      <div className="post-actions">
+                        <button
+                          className="delete-post-button"
+                          onClick={() => {
+                            setShowDeleteConfirm({
+                              type: 'post',
+                              id: post.id,
+                              title: index === 0 ? 'original post' : 'reply'
+                            });
+                          }}
+                          title={index === 0 ? "Delete topic" : "Delete post"}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -458,6 +607,7 @@ const Forum = () => {
             </div>
           </>
         )}
+        {renderDeleteConfirmation()}
       </div>
     );
   };

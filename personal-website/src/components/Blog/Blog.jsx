@@ -884,9 +884,9 @@ const Blog = () => {
           // Blog post list
           <div className="blog-list">
             <div className="blog-header">
-              <h1 className="blog-title">DC381 Blog</h1>
+              <h1 className="blog-title">Getting Started With DC381</h1>
               <p className="blog-subtitle">
-                Browse all our philes below.
+                Read your first philes bellow.
               </p>
             </div>
             
